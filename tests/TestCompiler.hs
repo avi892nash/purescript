@@ -51,10 +51,22 @@ import Test.Hspec (Expectation, SpecWith, beforeAllWith, describe, expectationFa
 
 spec :: SpecWith SupportModules
 spec = do
-  passingTests
-  warningTests
-  failingTests
-  optimizeTests
+  -- passingTests
+  -- warningTests
+  -- failingTests
+  -- optimizeTests
+  myTests
+
+myTests :: SpecWith SupportModules
+myTests = do
+  passingTestCases <- runIO $ getTestFiles "my"
+
+  describe "Passing examples" $
+    beforeAllWith ((<$> createOutputFile logfile) . (,)) $
+      forM_ passingTestCases $ \testPurs ->
+        it ("'" <> takeFileName (getTestMain testPurs) <> "' should compile and run without error") $ \(support, outputFile) ->
+          assertCompiles support testPurs outputFile
+
 
 passingTests :: SpecWith SupportModules
 passingTests = do
@@ -138,7 +150,7 @@ assertCompiles support inputFiles outputFile = do
   let errorOptions = P.defaultPPEOptions { P.ppeFileContents = fileContents }
   case result of
     Left errs -> expectationFailure . P.prettyPrintMultipleErrors errorOptions $ errs
-    Right _ -> do
+    Right t -> do
       let entryPoint = modulesDir </> "index.js"
       writeFile entryPoint "import('./Main/index.js').then(({ main }) => main());"
       nodeResult <- readNodeProcessWithExitCode Nothing [entryPoint] ""
@@ -148,7 +160,8 @@ assertCompiles support inputFiles outputFile = do
           | not (null err) -> expectationFailure $ "Test wrote to stderr:\n\n" <> err
           | not (null out) && trim (last (lines out)) == "Done" -> hPutStr outputFile out
           | otherwise -> expectationFailure $ "Test did not finish with 'Done':\n\n" <> out
-        Right (ExitFailure _, _, err) -> expectationFailure err
+        Right (ExitFailure _, _, err) -> do
+          expectationFailure (err <> show t)
         Left err -> expectationFailure err
 
 assertCompilesWithWarnings

@@ -44,6 +44,7 @@ literals = mkPattern' match'
     , intercalate (emit ", ") <$> forM xs prettyPrintJS'
     , return $ emit " ]"
     ]
+
   match (ObjectLiteral _ []) = return $ emit "{}"
   match (ObjectLiteral _ ps) = mconcat <$> sequence
     [ return $ emit "{\n"
@@ -99,6 +100,12 @@ literals = mkPattern' match'
     , prettyPrintJS' obj
     , return $ emit ") "
     , prettyPrintJS' sts
+    ]
+  match (SpreadOperator _ ps) = mconcat <$> sequence
+    [ return $ emit "{"
+    , return $ emit "..."
+    , prettyPrintJS' ps
+    , return $ emit "}"
     ]
   match (IfElse _ cond thens elses) = mconcat <$> sequence
     [ return $ emit "if ("
