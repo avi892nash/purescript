@@ -366,18 +366,16 @@ moduleBindToJs mn = bindToJs
   extendObj :: AST -> [(PSString, AST)] -> m AST
   extendObj obj sts = do
     newObj <- freshName
-    key <- freshName
+    -- key <- freshName
     evaluatedObj <- freshName
     let
-      jsKey = AST.Var Nothing key
+      -- jsKey = AST.Var Nothing key
       jsNewObj = AST.Var Nothing newObj
       jsEvaluatedObj = AST.Var Nothing evaluatedObj
-      block = AST.Block Nothing (evaluate:objAssign:copy:extend ++ [AST.Return Nothing jsNewObj])
+      block = AST.Block Nothing (evaluate:objAssign:extend ++ [AST.Return Nothing jsNewObj])
       evaluate = AST.VariableIntroduction Nothing evaluatedObj (Just (UnknownEffects, obj))
-      objAssign = AST.VariableIntroduction Nothing newObj (Just (NoEffects, AST.ObjectLiteral Nothing []))
-      copy = AST.ForIn Nothing key jsEvaluatedObj $ AST.Block Nothing [AST.IfElse Nothing cond assign Nothing]
-      cond = AST.App Nothing (accessorString "call" (accessorString "hasOwnProperty" (AST.ObjectLiteral Nothing []))) [jsEvaluatedObj, jsKey]
-      assign = AST.Block Nothing [AST.Assignment Nothing (AST.Indexer Nothing jsKey jsNewObj) (AST.Indexer Nothing jsKey jsEvaluatedObj)]
+      objAssign = AST.VariableIntroduction Nothing newObj (Just (NoEffects, AST.SpreadOperator Nothing jsEvaluatedObj))
+      -- assign = AST.Block Nothing [AST.Assignment Nothing (AST.Indexer Nothing jsKey jsNewObj) (AST.Indexer Nothing jsKey jsEvaluatedObj)]
       stToAssign (s, js) = AST.Assignment Nothing (accessorString s jsNewObj) js
       extend = map stToAssign sts
     return $ AST.App Nothing (AST.Function Nothing Nothing [] block) []
