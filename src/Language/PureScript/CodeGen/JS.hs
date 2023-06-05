@@ -41,7 +41,7 @@ import Language.PureScript.Crash (internalError)
 import Language.PureScript.Errors (ErrorMessageHint(..), SimpleErrorMessage(..),
                                    MultipleErrors(..), rethrow, errorMessage,
                                    errorMessage', rethrowWithPosition, addHint)
-import Language.PureScript.Names (Ident(..), ModuleName, ProperName(..), Qualified(..), QualifiedBy(..), runIdent, runModuleName, showIdent, showQualified)
+import Language.PureScript.Names (Ident(..), ModuleName, ProperName(..), Qualified(..), QualifiedBy(..), runIdent, runModuleName, showIdent, showQualified, disqualify)
 import Language.PureScript.Options (CodegenTarget(..), Options(..))
 import Language.PureScript.PSString (PSString, mkString)
 import Language.PureScript.Traversals (sndM)
@@ -291,9 +291,9 @@ moduleBindToJs mn = bindToJs
   valueToJs' (Literal (pos, _, _, _) l) =
     rethrowWithPosition pos $ literalToValueJS pos l
   valueToJs' (Var (_, _, _, Just (IsConstructor _ [])) name) =
-    return $ accessorString "value" $ qualifiedToJS id name
+    return $ qualifiedToJS id name
   valueToJs' (Var (_, _, _, Just (IsConstructor _ _)) name) =
-    return $ accessorString "create" $ qualifiedToJS id name
+    return $ qualifiedToJS id name
   valueToJs' (Accessor _ prop val) =
     accessorString prop <$> valueToJs val
   valueToJs' (ObjectUpdate _ o ps) = do
@@ -312,7 +312,7 @@ moduleBindToJs mn = bindToJs
     case f of
       Var (_, _, _, Just IsNewtype) _ -> return (head args')
       Var (_, _, _, Just (IsConstructor _ fields)) name | length args == length fields ->
-        return $ AST.Unary Nothing AST.New $ AST.App Nothing (qualifiedToJS id name) args'
+        return $ foldl (\fn a -> AST.App Nothing fn [a]) (AST.App Nothing (qualifiedToJS id name) [head args']) $ tail args'
       _ -> flip (foldl (\fn a -> AST.App Nothing fn [a])) args' <$> valueToJs f
     where
     unApp :: Expr Ann -> [Expr Ann] -> (Expr Ann, [Expr Ann])
@@ -338,22 +338,23 @@ moduleBindToJs mn = bindToJs
                   AST.Function Nothing Nothing ["value"]
                     (AST.Block Nothing [AST.Return Nothing $ AST.Var Nothing "value"]))])
   valueToJs' (Constructor _ _ ctor []) =
-    return $ iife (properToJs ctor) [ AST.Function Nothing (Just (properToJs ctor)) [] (AST.Block Nothing [])
-           , AST.Assignment Nothing (accessorString "value" (AST.Var Nothing (properToJs ctor)))
-                (AST.Unary Nothing AST.New $ AST.App Nothing (AST.Var Nothing (properToJs ctor)) []) ]
+    let tag = AST.StringLiteral Nothing (fromString $ T.unpack $ runProperName ctor)
+    in return $ AST.ObjectLiteral Nothing [("tag", tag)]
   valueToJs' (Constructor _ _ ctor fields) =
-    let constructor =
-          let body = [ AST.Assignment Nothing ((accessorString $ mkString $ identToJs f) (AST.Var Nothing "this")) (var f) | f <- fields ]
-          in AST.Function Nothing (Just (properToJs ctor)) (identToJs `map` fields) (AST.Block Nothing body)
-        createFn =
-          let body = AST.Unary Nothing AST.New $ AST.App Nothing (AST.Var Nothing (properToJs ctor)) (var `map` fields)
-          in foldr (\f inner -> AST.Function Nothing Nothing [identToJs f] (AST.Block Nothing [AST.Return Nothing inner])) body fields
-    in return $ iife (properToJs ctor) [ constructor
-                          , AST.Assignment Nothing (accessorString "create" (AST.Var Nothing (properToJs ctor))) createFn
-                          ]
+    let 
+        -- body = [AST.VariableIntroduction Nothing "res" (Just (NoEffects, AST.ObjectLiteral Nothing []))] <> [AST.Assignment Nothing (accessorString "tag" (AST.Var Nothing "res")) (AST.StringLiteral Nothing (fromString $ T.unpack $ runProperName ctor))] <> [AST.Assignment Nothing ((accessorString $ mkString $ identToJs f) (AST.Var Nothing "res")) (var f) | f <- fields ] <> [AST.Return Nothing $ AST.Var Nothing "res"]
+        -- constructor = AST.Function Nothing (Just (properToJs ctor)) (identToJs `map` fields) (AST.Block Nothing body)
+        actualBody = AST.ObjectLiteral Nothing $ [("tag", AST.StringLiteral Nothing (fromString $ T.unpack $ runProperName ctor))] <> map (\x -> let y = runIdent x in (fromString $ T.unpack y, AST.Var Nothing y)) fields
+        -- body3 = AST.Unary Nothing AST.New $ AST.App Nothing (AST.Var Nothing (properToJs ctor)) (var `map` fields)
+        createFn = foldr (\f inner -> AST.Function Nothing Nothing [identToJs f] (AST.Block Nothing [AST.Return Nothing inner])) actualBody fields
+    in return $ createFn 
+    
+    -- iife (properToJs ctor) [ constructor
+    --                       , AST.Assignment Nothing (accessorString "create" (AST.Var Nothing (properToJs ctor))) createFn
+    --                       ]
 
-  iife :: Text -> [AST] -> AST
-  iife v exprs = AST.App Nothing (AST.Function Nothing Nothing [] (AST.Block Nothing $ exprs ++ [AST.Return Nothing $ AST.Var Nothing v])) []
+  -- iife :: Text -> [AST] -> AST
+  -- iife v exprs = AST.App Nothing (AST.Function Nothing Nothing [] (AST.Block Nothing $ exprs ++ [AST.Return Nothing $ AST.Var Nothing v])) []
 
   literalToValueJS :: SourceSpan -> Literal (Expr Ann) -> m AST
   literalToValueJS ss (NumericLiteral (Left i)) = return $ AST.NumericLiteral (Just ss) (Left i)
@@ -462,7 +463,7 @@ moduleBindToJs mn = bindToJs
     return $ case ctorType of
       ProductType -> js
       SumType ->
-        [AST.IfElse Nothing (AST.InstanceOf Nothing (AST.Var Nothing varName) (qualifiedToJS (Ident . runProperName) ctor))
+        [AST.IfElse Nothing (AST.Binary Nothing AST.EqualTo (accessorString "tag" (AST.Var Nothing varName)) (AST.StringLiteral Nothing (fromString $ T.unpack $ runProperName $ disqualify ctor)))
                   (AST.Block Nothing js)
                   Nothing]
     where
