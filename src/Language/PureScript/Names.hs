@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-
+{-# LANGUAGE DeriveAnyClass #-}
 -- |
 -- Data types for names
 --
@@ -21,6 +21,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 
 import Language.PureScript.AST.SourcePos (SourcePos, pattern SourcePos)
+import Data.Aeson qualified as A
 
 -- | A sum of the possible name types, useful for error and lint messages.
 data Name
@@ -97,6 +98,7 @@ data Ident
   | InternalIdent !InternalIdentData
   deriving (Show, Eq, Ord, Generic)
 
+
 instance NFData Ident
 instance Serialise Ident
 
@@ -129,6 +131,9 @@ isPlainIdent _ = False
 newtype OpName (a :: OpNameType) = OpName { runOpName :: Text }
   deriving (Show, Eq, Ord, Generic)
 
+
+instance ToJSONKey (OpName a)
+instance FromJSONKey (OpName a)
 instance NFData (OpName a)
 instance Serialise (OpName a)
 
@@ -158,6 +163,8 @@ coerceOpName = OpName . runOpName
 newtype ProperName (a :: ProperNameType) = ProperName { runProperName :: Text }
   deriving (Show, Eq, Ord, Generic)
 
+instance ToJSONKey (ProperName a)
+instance FromJSONKey (ProperName a)
 instance NFData (ProperName a)
 instance Serialise (ProperName a)
 
@@ -175,7 +182,7 @@ data ProperNameType
   | ConstructorName
   | ClassName
   | Namespace
-
+  deriving(Generic, ToJSON, FromJSON, ToJSONKey, FromJSONKey)
 -- |
 -- Coerces a ProperName from one ProperNameType to another. This should be used
 -- with care, and is primarily used to convert ClassNames into TypeNames after
@@ -205,7 +212,7 @@ isBuiltinModuleName (ModuleName mn) = mn == "Prim" || "Prim." `T.isPrefixOf` mn
 data QualifiedBy
   = BySourcePos SourcePos
   | ByModuleName ModuleName
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord, Generic, A.ToJSONKey,A.FromJSONKey, A.ToJSON, A.FromJSON)
 
 pattern ByNullSourcePos :: QualifiedBy
 pattern ByNullSourcePos = BySourcePos (SourcePos 0 0)
@@ -229,7 +236,7 @@ toMaybeModuleName (BySourcePos _) = Nothing
 -- A qualified name, i.e. a name with an optional module name
 --
 data Qualified a = Qualified QualifiedBy a
-  deriving (Show, Eq, Ord, Functor, Foldable, Traversable, Generic)
+  deriving (Show, Eq, Ord, Functor, Foldable, Traversable, Generic, A.ToJSONKey, A.FromJSONKey)
 
 instance NFData a => NFData (Qualified a)
 instance Serialise a => Serialise (Qualified a)
@@ -320,3 +327,5 @@ instance FromJSONKey ModuleName where
 
 $(deriveJSON (defaultOptions { sumEncoding = ObjectWithSingleField }) ''InternalIdentData)
 $(deriveJSON (defaultOptions { sumEncoding = ObjectWithSingleField }) ''Ident)
+instance FromJSONKey Ident
+instance ToJSONKey Ident

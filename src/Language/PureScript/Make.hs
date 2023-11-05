@@ -50,6 +50,7 @@ import Language.PureScript.Make.Monad as Monad
 import Language.PureScript.CoreFn qualified as CF
 import System.Directory (doesFileExist)
 import System.FilePath (replaceExtension)
+-- import Data.Map qualified as M
 
 -- | Rebuild a single module.
 --
@@ -86,10 +87,13 @@ rebuildModuleWithIndex
   -> m ExternsFile
 rebuildModuleWithIndex MakeActions{..} exEnv externs m@(Module _ _ moduleName _ _) moduleIndex = do
   progress $ CompilingModule moduleName moduleIndex
+
   let env = foldl' (flip applyExternsFileToEnvironment) initEnvironment externs
       withPrim = importPrim m
   lint withPrim
-
+  writeJSONFileA ("./output/" ++ T.unpack (runModuleName moduleName) ++ "/evironment.json") env
+  writeJSONFileA ("./output/" ++ T.unpack (runModuleName moduleName) ++ "/extern_deps.json") externs
+  writeJSONFileA ("./output/" ++ T.unpack (runModuleName moduleName) ++ "/env.json") $ M.toList exEnv
   ((Module ss coms _ elaborated exps, env'), nextVar) <- runSupplyT 0 $ do
     (desugared, (exEnv', usedImports)) <- runStateT (desugar externs withPrim) (exEnv, mempty)
     let modulesExports = (\(_, _, exports) -> exports) <$> exEnv'

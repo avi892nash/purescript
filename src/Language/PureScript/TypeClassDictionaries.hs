@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 module Language.PureScript.TypeClassDictionaries where
 
 import Prelude
@@ -9,6 +10,7 @@ import Data.Text (Text, pack)
 import Language.PureScript.AST.Declarations.ChainId (ChainId)
 import Language.PureScript.Names (Ident, ProperName(..), ProperNameType(..), Qualified, disqualify)
 import Language.PureScript.Types (SourceConstraint, SourceType)
+import Data.Aeson qualified as A
 
 --
 -- Data representing a type class dictionary which is in scope
@@ -37,7 +39,7 @@ data TypeClassDictionaryInScope v
     -- error messages
     , tcdDescription :: Maybe SourceType
     }
-    deriving (Show, Functor, Foldable, Traversable, Generic)
+    deriving (Eq, Show, Functor, Foldable, Traversable, Generic, A.ToJSON, A.FromJSON, A.ToJSONKey, A.FromJSONKey)
 
 instance NFData v => NFData (TypeClassDictionaryInScope v)
 

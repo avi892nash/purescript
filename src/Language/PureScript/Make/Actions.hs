@@ -20,7 +20,7 @@ import Control.Monad.Reader (asks)
 import Control.Monad.Supply (SupplyT)
 import Control.Monad.Trans.Class (MonadTrans(..))
 import Control.Monad.Writer.Class (MonadWriter(..))
-import Data.Aeson (Value(String), (.=), object)
+import Data.Aeson (Value(String), (.=), object, ToJSON)
 import Data.Bifunctor (bimap, first)
 import Data.Either (partitionEithers)
 import Data.Foldable (for_)
@@ -128,7 +128,8 @@ data MakeActions m = MakeActions
   -- ^ Write to the output directory the package.json file allowing Node.js to
   -- load .js files as ES modules.
   , outputPrimDocs :: m ()
-  -- ^ If generating docs, output the documentation for the Prim modules
+  -- ^ If generating docs, output the documentation for the Prim modules\
+  , writeJSONFileA :: forall a. ToJSON a => FilePath -> a -> m ()
   }
 
 -- | Given the output directory, determines the location for the
@@ -174,9 +175,10 @@ buildMakeActions
   -- ^ Generate a prefix comment?
   -> MakeActions Make
 buildMakeActions outputDir filePathMap foreigns usePrefix =
-    MakeActions getInputTimestampsAndHashes getOutputTimestamp readExterns codegen ffiCodegen progress readCacheDb writeCacheDb writePackageJson outputPrimDocs
+    MakeActions getInputTimestampsAndHashes getOutputTimestamp readExterns codegen ffiCodegen progress readCacheDb writeCacheDb writePackageJson outputPrimDocs writeJSONFileA
   where
-
+  writeJSONFileA :: forall a. ToJSON a => FilePath -> a -> Make ()
+  writeJSONFileA = writeJSONFile
   getInputTimestampsAndHashes
     :: ModuleName
     -> Make (Either RebuildPolicy (M.Map FilePath (UTCTime, Make ContentHash)))

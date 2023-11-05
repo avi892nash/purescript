@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass #-}
 module Language.PureScript.Environment where
 
 import Prelude
@@ -45,7 +46,7 @@ data Environment = Environment
   -- scope (ie dictionaries brought in by a constrained type).
   , typeClasses :: M.Map (Qualified (ProperName 'ClassName)) TypeClassData
   -- ^ Type classes
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, A.ToJSONKey, A.ToJSON, A.FromJSON)
 
 instance NFData Environment
 
@@ -71,7 +72,7 @@ data TypeClassData = TypeClassData
   -- ^ A sets of arguments that can be used to infer all other arguments.
   , typeClassIsEmpty :: Bool
   -- ^ Whether or not dictionaries for this type class are necessarily empty.
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, A.ToJSON, A.FromJSON, A.ToJSONKey, A.FromJSONKey)
 
 instance NFData TypeClassData
 
@@ -233,7 +234,7 @@ data NameVisibility
   -- ^ The name is defined in the current binding group, but is not visible
   | Defined
   -- ^ The name is defined in the another binding group, or has been made visible by a function binder
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, A.ToJSON, A.FromJSON)
 
 instance NFData NameVisibility
 instance Serialise NameVisibility
@@ -248,7 +249,7 @@ data NameKind
   -- ^ A public value for a module member or foreign import declaration
   | External
   -- ^ A name for member introduced by foreign import
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, A.ToJSON, A.FromJSON)
 
 instance NFData NameKind
 instance Serialise NameKind
@@ -265,7 +266,7 @@ data TypeKind
   -- ^ A local type variable
   | ScopedTypeVar
   -- ^ A scoped type variable
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, A.ToJSON, A.FromJSON)
 
 instance NFData TypeKind
 instance Serialise TypeKind

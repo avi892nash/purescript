@@ -2,6 +2,7 @@
 -- This module generates code for \"externs\" files, i.e. files containing only
 -- foreign import declarations.
 --
+{-# LANGUAGE DeriveAnyClass #-}
 module Language.PureScript.Externs
   ( ExternsFile(..)
   , ExternsImport(..)
@@ -37,6 +38,7 @@ import Language.PureScript.TypeClassDictionaries (NamedDict, TypeClassDictionary
 import Language.PureScript.Types (SourceConstraint, SourceType, srcInstanceType)
 
 import Paths_purescript as Paths
+import Data.Aeson (ToJSON, FromJSON)
 
 -- | The data which will be serialized to an externs file
 data ExternsFile = ExternsFile
@@ -59,7 +61,7 @@ data ExternsFile = ExternsFile
   -- ^ List of type and value declaration
   , efSourceSpan :: SourceSpan
   -- ^ Source span for error reporting
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, ToJSON, FromJSON)
 
 instance Serialise ExternsFile
 
@@ -72,7 +74,7 @@ data ExternsImport = ExternsImport
   , eiImportType :: ImportDeclarationType
   -- | The imported-as name, for qualified imports
   , eiImportedAs :: Maybe ModuleName
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, ToJSON, FromJSON)
 
 instance Serialise ExternsImport
 
@@ -87,7 +89,7 @@ data ExternsFixity = ExternsFixity
   , efOperator :: OpName 'ValueOpName
   -- | The value the operator is an alias for
   , efAlias :: Qualified (Either Ident (ProperName 'ConstructorName))
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, ToJSON, FromJSON)
 
 instance Serialise ExternsFixity
 
@@ -102,7 +104,7 @@ data ExternsTypeFixity = ExternsTypeFixity
   , efTypeOperator :: OpName 'TypeOpName
   -- | The value the operator is an alias for
   , efTypeAlias :: Qualified (ProperName 'TypeName)
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, ToJSON, FromJSON)
 
 instance Serialise ExternsTypeFixity
 
@@ -155,7 +157,7 @@ data ExternsDeclaration =
       , edInstanceNameSource      :: NameSource
       , edInstanceSourceSpan      :: SourceSpan
       }
-  deriving (Show, Generic)
+  deriving (Show, Generic, ToJSON, FromJSON)
 
 instance Serialise ExternsDeclaration
 
@@ -275,4 +277,4 @@ moduleToExternsFile (Module ss _ mn ds (Just exps)) env renamedIdents = ExternsF
   lookupRenamedIdent = flip (join M.findWithDefault) renamedIdents
 
 externsFileName :: FilePath
-externsFileName = "externs.cbor"
+externsFileName = "externs.json"

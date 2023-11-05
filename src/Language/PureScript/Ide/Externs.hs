@@ -1,4 +1,6 @@
 {-# language PackageImports, BlockArguments #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 
 module Language.PureScript.Ide.Externs
   ( readExternFile
@@ -27,18 +29,18 @@ readExternFile fp = do
   case externsFile of
     Just externs | version == P.efVersion externs ->
       pure externs
+    -- _ ->
+    --   liftIO (Make.readCborFileIO fp) >>= \case
+    --     Just (Term.TList (_tag : Term.TString efVersion : _rest)) -> do
+    --       let errMsg =
+    --             "Version mismatch for the externs at: "
+    --             <> toS fp
+    --             <> " Expected: " <> version
+    --             <> " Found: " <> efVersion
+    --       logErrorN errMsg
+    --       throwError (GeneralError errMsg)
     _ ->
-      liftIO (Make.readCborFileIO fp) >>= \case
-        Just (Term.TList (_tag : Term.TString efVersion : _rest)) -> do
-          let errMsg =
-                "Version mismatch for the externs at: "
-                <> toS fp
-                <> " Expected: " <> version
-                <> " Found: " <> efVersion
-          logErrorN errMsg
-          throwError (GeneralError errMsg)
-        _ ->
-          throwError (GeneralError ("Parsing the extern at: " <> toS fp <> " failed"))
+      throwError (GeneralError ("Parsing the extern at: " <> toS fp <> " failed"))
     where
       version = toS (showVersion P.version)
 
