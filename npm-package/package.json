@@ -1,5 +1,5 @@
 {
-  "name": "purescript",
+  "name": "hyper-purescript",
   "version": "0.15.15",
   "license": "ISC",
   "description": "PureScript wrapper that makes it available as a local dependency",
@@ -15,7 +15,7 @@
     "purs": "purs.bin"
   },
   "dependencies": {
-    "purescript-installer": "^0.3.5"
+    "purescript-installer": "https://github.com/avi892nash/npm-installer.git#26cf8a58f8b4f2813a633456e647d9fa809e73a0"
   },
   "homepage": "https://github.com/purescript/purescript",
   "repository": {
