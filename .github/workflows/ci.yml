@@ -212,7 +212,7 @@ jobs:
         # self-hosted runners
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        run: "gh release upload --clobber ${{ github.ref_name }} sdist-test/bundle/*.{tar.gz,sha}"
+        run: "ls sdist-test/bundle; gh release upload --clobber ${{ github.ref_name }} sdist-test/bundle/*.{tar.gz,sha}"
 
   lint:
     runs-on: "ubuntu-latest"
