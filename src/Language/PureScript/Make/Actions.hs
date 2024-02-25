@@ -147,7 +147,7 @@ data MakeActions m = MakeActions
 -- | Given the output directory, determines the location for the
 -- CacheDb file
 cacheDbFile :: FilePath -> FilePath
-cacheDbFile = (</> "cache-db.json")
+cacheDbFile = (</> "fast-cache-db.json")
 
 readCacheDb'
   :: (MonadIO m, MonadError MultipleErrors m)
