@@ -62,7 +62,7 @@ package_version=$(node -pe 'require("./npm-package/package.json").version')
 package_release_version=${package_version%%-*}
 package_prerelease_suffix=${package_version#$package_release_version}
 
-if ! grep -q "\"install-purescript --purs-ver=${package_version//./\\.}\"" npm-package/package.json
+if ! grep -q "\"fast-install-purescript --purs-ver=${package_version//./\\.}\"" npm-package/package.json
 then
   echo "Version in npm-package/package.json doesn't match version in install-purescript call"
   exit 1
