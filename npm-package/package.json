@@ -1,6 +1,6 @@
 {
-  "name": "purescript",
-  "version": "0.15.15",
+  "name": "hyper-purescript",
+  "version": "0.0.2",
   "license": "ISC",
   "description": "PureScript wrapper that makes it available as a local dependency",
   "author": {
@@ -9,13 +9,13 @@
   },
   "files": [
     "index.js",
-    "purs.bin"
+    "fastpurs.bin"
   ],
   "bin": {
-    "purs": "purs.bin"
+    "fastpurs": "fastpurs.bin"
   },
   "dependencies": {
-    "purescript-installer": "^0.3.5"
+    "fast-purescript-installer": "https://github.com/avi892nash/npm-installer.git#fastpurs"
   },
   "homepage": "https://github.com/purescript/purescript",
   "repository": {
@@ -42,8 +42,8 @@
     "wrapper"
   ],
   "scripts": {
-    "prepublishOnly": "node -e \"require('fs').copyFileSync('purs.bin.placeholder', 'purs.bin');\"",
-    "postinstall": "install-purescript --purs-ver=0.15.15",
+    "prepublishOnly": "node -e \"require('fs').copyFileSync('purs.bin.placeholder', 'fastpurs.bin');\"",
+    "postinstall": "fast-install-purescript --purs-ver=0.0.2",
     "test": "echo 'Error: no test specified' && exit 1"
   }
 }
