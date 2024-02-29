@@ -192,7 +192,8 @@ make' MakeOptions{..} ma@MakeActions{..} ms = do
 
   (sorted, graph) <- sortModules Transitive (moduleSignature . CST.resPartial) ms
   let opts = BuildPlan.Options {optPreloadAllExterns = moCollectAllExterns}
-  (buildPlan, newCacheDb) <- BuildPlan.construct opts ma cacheDb (sorted, graph)
+  (_, directG) <- sortModules Direct (moduleSignature . CST.resPartial) ms
+  (buildPlan, newCacheDb) <- BuildPlan.construct opts ma cacheDb (sorted, graph, directG)
 
   -- Limit concurrent module builds to the number of capabilities as
   -- (by default) inferred from `+RTS -N -RTS` or set explicitly like `-N4`.
