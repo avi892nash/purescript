@@ -24,7 +24,7 @@ import Data.Aeson (Value(String), (.=), object)
 import Data.Bifunctor (bimap, first)
 import Data.Either (partitionEithers)
 import Data.Foldable (for_)
-import Data.List.NonEmpty qualified as NEL
+-- import Data.List.NonEmpty qualified as NEL
 import Data.Map qualified as M
 import Data.Maybe (fromMaybe, maybeToList)
 import Data.Set qualified as S
@@ -235,32 +235,7 @@ buildMakeActions outputDir filePathMap foreigns usePrefix =
     Docs -> outputFilename mn "docs.json"
 
   getOutputTimestamp :: ModuleName -> Make (Maybe UTCTime)
-  getOutputTimestamp mn = do
-    codegenTargets <- asks optionsCodegenTargets
-    mExternsTimestamp <- getTimestampMaybe (outputFilename mn externsFileName)
-    case mExternsTimestamp of
-      Nothing ->
-        -- If there is no externs file, we will need to compile the module in
-        -- order to produce one.
-        pure Nothing
-      Just externsTimestamp ->
-        case NEL.nonEmpty (fmap (targetFilename mn) (S.toList codegenTargets)) of
-          Nothing ->
-            -- If the externs file exists and no other codegen targets have
-            -- been requested, then we can consider the module up-to-date
-            pure (Just externsTimestamp)
-          Just outputPaths -> do
-            -- If any of the other output paths are nonexistent or older than
-            -- the externs file, then they should be considered outdated, and
-            -- so the module will need rebuilding.
-            mmodTimes <- traverse getTimestampMaybe outputPaths
-            pure $ case sequence mmodTimes of
-              Nothing ->
-                Nothing
-              Just modTimes ->
-                if externsTimestamp <= minimum modTimes
-                  then Just externsTimestamp
-                  else Nothing
+  getOutputTimestamp mn = getTimestampMaybe (outputFilename mn externsFileName)
 
   updateOutputTimestamp :: ModuleName -> Make Bool
   updateOutputTimestamp mn = do
