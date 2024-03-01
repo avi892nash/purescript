@@ -176,9 +176,9 @@ construct
   => Options
   -> MakeActions m
   -> CacheDb
-  -> ([CST.PartialResult Module], [(ModuleName, [ModuleName])])
+  -> ([CST.PartialResult Module], [(ModuleName, [ModuleName])], [(ModuleName, [ModuleName])])
   -> m (BuildPlan, CacheDb)
-construct Options{..} MakeActions{..} cacheDb (sorted, graph) = do
+construct Options{..} MakeActions{..} cacheDb (sorted, graph, directedGraph) = do
   let sortedModuleNames = map (getModuleName . CST.resPartial) sorted
   rebuildStatuses <- A.forConcurrently sortedModuleNames getRebuildStatus
 
@@ -246,7 +246,7 @@ construct Options{..} MakeActions{..} cacheDb (sorted, graph) = do
   env <- C.newMVar primEnv
   idx <- C.newMVar 1
   pure
-    ( BuildPlan prebuilt (previous <> (M.fromList $ catMaybes missedModules)) buildJobs env idx
+    ( BuildPlan prebuilt (previous <> M.fromList (catMaybes missedModules)) buildJobs env idx
     , let
         update = flip $ \s ->
           M.alter (const (rsNewCacheInfo s)) (rsModuleName s)
@@ -299,7 +299,9 @@ construct Options{..} MakeActions{..} cacheDb (sorted, graph) = do
     moduleDeps = fromMaybe graphError . flip lookup graph
       where
         graphError = internalError "make: module not found in dependency graph."
-
+    moduleDirectedDeps = fromMaybe graphError . flip lookup directedGraph
+      where
+        graphError = internalError "make: module not found in dependency graph."
     splitModules :: [RebuildStatus] -> (M.Map ModuleName (Maybe (UpToDateStatus, UTCTime)), M.Map ModuleName UTCTime)
     splitModules = foldl' collectByStatus (M.empty, M.empty)
 
@@ -312,7 +314,7 @@ construct Options{..} MakeActions{..} cacheDb (sorted, graph) = do
       | Just pb <- mbPb, rebuildNever = toPrebuilt pb
       -- In other case analyze compilation times of dependencies.
       | Just pb <- mbPb = do
-          let deps = moduleDeps mn
+          let deps = moduleDirectedDeps mn
           let modTimes = map (flip M.lookup prebuilt) deps
 
           case maximumMaybe (catMaybes modTimes) of
