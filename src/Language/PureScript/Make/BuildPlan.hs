@@ -222,16 +222,31 @@ construct Options{..} MakeActions{..} cacheDb (sorted, graph) = do
 
   let prebuilt = M.mapMaybe id prebuiltLoad
   let previous = M.mapMaybe id prevLoad
-
+  
   -- If for some reason (wrong version, files corruption, etc) prebuilt
   -- externs loading fails, those modules should be rebuilt too.
   let failedLoads = M.keys $ M.filter isNothing prebuiltLoad
   buildJobs <- foldM makeBuildJob M.empty (toBeRebuilt <> failedLoads)
+  missedModules <-
+    mapM (\rbstatus ->
+      let mn = rsModuleName rbstatus
+      in
+      if elem mn (toBeRebuilt <> failedLoads) && not (M.member mn previous)
+        then do
+          (_, ex) <- readExterns mn
+          -- let uptoDateStatus = do
+          --       cache <- rsNewCacheInfo rbstatus
+          --       unCacheInfo cache
+          case ex of
+            Just e -> pure $ Just (mn, ( (UpToDateStatus False) , Prebuilt e))
+            Nothing -> pure Nothing
+        else pure Nothing
+      ) rebuildStatuses
 
   env <- C.newMVar primEnv
   idx <- C.newMVar 1
   pure
-    ( BuildPlan prebuilt previous buildJobs env idx
+    ( BuildPlan prebuilt (previous <> (M.fromList $ catMaybes missedModules)) buildJobs env idx
     , let
         update = flip $ \s ->
           M.alter (const (rsNewCacheInfo s)) (rsModuleName s)
