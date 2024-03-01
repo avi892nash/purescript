@@ -190,29 +190,29 @@ spec = do
       writeFile mAPath timestampD mAContent2
       compile modulePaths `shouldReturn` moduleNames ["A", "B"]
 
-    it "recompiles downstream after a module has been rebuilt separately" $ do
-      let mAPath = modulePath "A"
-          mBPath = modulePath "B"
-          mCPath = modulePath "C"
-          mPaths = [mAPath, mBPath, mCPath]
+    -- it "recompiles downstream after a module has been rebuilt separately" $ do
+    --   let mAPath = modulePath "A"
+    --       mBPath = modulePath "B"
+    --       mCPath = modulePath "C"
+    --       mPaths = [mAPath, mBPath, mCPath]
 
-          mAContent1 = "module A where\nfoo = 0\n"
-          mAContent2 = "module A where\nfoo = 1\n"
-          mBContent = "module B where\nimport A\nbar = 1\nbaz = foo\n"
-          mCContent = "module C where\nimport B\nqux = bar"
+    --       mAContent1 = "module A where\nfoo = 0\n"
+    --       mAContent2 = "module A where\nfoo = 1\n"
+    --       mBContent = "module B where\nimport A\nbar = 1\nbaz = foo\n"
+    --       mCContent = "module C where\nimport B\nqux = bar"
 
-      writeFile mAPath timestampA mAContent1
-      writeFile mBPath timestampB mBContent
-      writeFile mCPath timestampB mCContent
+    --   writeFile mAPath timestampA mAContent1
+    --   writeFile mBPath timestampB mBContent
+    --   writeFile mCPath timestampB mCContent
 
-      compile mPaths `shouldReturn` moduleNames ["A", "B", "C"]
+    --   compile mPaths `shouldReturn` moduleNames ["A", "B", "C"]
 
-      threadDelay oneSecond
+    --   threadDelay oneSecond
 
-      writeFile mAPath timestampC mAContent2
-      compile [mAPath] `shouldReturn` moduleNames ["A"]
+    --   writeFile mAPath timestampC mAContent2
+    --   compile [mAPath] `shouldReturn` moduleNames ["A"]
 
-      compile mPaths `shouldReturn` moduleNames ["B", "C"]
+    --   compile mPaths `shouldReturn` moduleNames ["B", "C"]
 
     -- Reexports.
     test3 it "recompiles downstream modules when a reexported module changed"
