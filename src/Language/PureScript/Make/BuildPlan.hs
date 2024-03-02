@@ -316,8 +316,12 @@ construct Options{..} MakeActions{..} cacheDb (sorted, graph, directedGraph) = d
       | Just pb <- mbPb = do
           let deps = moduleDirectedDeps mn
           let modTimes = map (flip M.lookup prebuilt) deps
-
-          case maximumMaybe (catMaybes modTimes) of
+          let getTimeStamp mD = do
+                mbVal <- M.lookup mD build
+                (_, time) <- mbVal
+                pure time
+          let depsExternTimeInBuild = map getTimeStamp deps
+          case maximumMaybe (catMaybes (modTimes <> depsExternTimeInBuild)) of
                 -- Check if any of deps where build later. This means we should
                 -- recompile even if the module's source is up-to-date. This may
                 -- happen due to some partial builds or ide compilation
