@@ -230,8 +230,11 @@ make' MakeOptions{..} ma@MakeActions{..} ms = do
           Left errs
         BuildJobSkipped ->
           Left mempty
+      removeSkip = \case
+        BuildJobSkipped -> False
+        _ -> True
     in
-      M.mapEither splitResults <$> BuildPlan.collectResults buildPlan
+      M.mapEither splitResults . M.filter removeSkip <$> BuildPlan.collectResults buildPlan
 
   -- Write the updated build cache database to disk
   writeCacheDb $ Cache.removeModules (M.keysSet failures) newCacheDb
