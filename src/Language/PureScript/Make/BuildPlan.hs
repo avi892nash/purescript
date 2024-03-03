@@ -16,7 +16,7 @@ import Prelude
 import Control.Concurrent.Async.Lifted qualified as A
 import Control.Concurrent.Lifted qualified as C
 import Control.Monad.Base (liftBase)
-import Control.Monad (foldM, guard)
+import Control.Monad (foldM, guard, join)
 import Control.Monad.Trans.Control (MonadBaseControl(..))
 import Data.Foldable (foldl')
 import Data.Map qualified as M
@@ -180,6 +180,9 @@ construct
   -> m (BuildPlan, CacheDb)
 construct Options{..} MakeActions{..} cacheDb (sorted, graph, directedGraph) = do
   let sortedModuleNames = map (getModuleName . CST.resPartial) sorted
+  externs <- M.fromList <$> mapM (\mn -> fmap (fmap Prebuilt . snd) . (mn,) <$> readExterns mn) sortedModuleNames
+  let findExtern mn = join $ M.lookup mn externs
+
   rebuildStatuses <- A.forConcurrently sortedModuleNames getRebuildStatus
 
   -- Split modules into those that have to be rebuilt and those that have a valid
@@ -214,11 +217,8 @@ construct Options{..} MakeActions{..} cacheDb (sorted, graph, directedGraph) = d
           )
           rebuildMap
 
-  (prebuiltLoad, prevLoad) <-
-    A.concurrently
-      (A.mapConcurrently id $ M.mapWithKey loadPrebuilt toLoadPrebuilt)
-      (A.mapConcurrently id $ M.mapWithKey
-        (\mn (up, ts) -> fmap (up,) <$> loadPrebuilt mn ts) toLoadPrev)
+  let prebuiltLoad = M.mapWithKey (\mn _ -> findExtern mn) toLoadPrebuilt
+      prevLoad = M.mapWithKey (\mn (up, _) -> (up,) <$> findExtern mn) toLoadPrev
 
   let prebuilt = M.mapMaybe id prebuiltLoad
   let previous = M.mapMaybe id prevLoad
@@ -254,11 +254,6 @@ construct Options{..} MakeActions{..} cacheDb (sorted, graph, directedGraph) = d
         foldl' update cacheDb rebuildStatuses
     )
   where
-    -- Timestamp here is just to ensure that we will only try to load modules
-    -- that have previous built results available.
-    loadPrebuilt :: ModuleName -> UTCTime -> m (Maybe Prebuilt)
-    loadPrebuilt = const . fmap (fmap Prebuilt . snd) . readExterns
-
     makeBuildJob prev moduleName = do
       buildJob <- BuildJob <$> C.newEmptyMVar
       pure (M.insert moduleName buildJob prev)
