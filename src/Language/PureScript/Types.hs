@@ -115,6 +115,15 @@ data Type a
 instance NFData a => NFData (Type a)
 instance Serialise a => Serialise (Type a)
 
+returnType :: Type a -> Type a
+returnType (ParensInType _ t) = returnType t
+returnType (ForAll _ _ _ _ t _) = returnType t
+-- returnType (TypeApp _ e t) = 
+--   case e of
+--     (TypeConstructor _) -> 
+--     _ -> returnType t
+returnType t = t
+
 srcTUnknown :: Int -> SourceType
 srcTUnknown = TUnknown NullSourceAnn
 
